@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - '*'
+    branches:
+      - main
 
 jobs:
   publish:
@@ -16,11 +18,15 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Set TAG to branch name when not a tagged commit
+        if: startsWith(github.ref, 'refs/heads/')
+        run: echo TAG=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
+
       - name: Get TAG
-        id: get_tag
+        if: startsWith(github.ref, 'refs/tags/')
         run: echo TAG=${GITHUB_REF#refs/tags/} >> $GITHUB_ENV
+
       - name: Get Repo Owner
-        id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
 
       - name: Set up QEMU
@@ -35,7 +41,6 @@ jobs:
           registry: ghcr.io
 
       - name: Release build
-        id: release_build
         uses: docker/build-push-action@v3
         with:
           outputs: "type=registry,push=true"
