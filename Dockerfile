@@ -15,7 +15,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
   -a -o /usr/bin/cats .
 
 #FROM --platform=${BUILDPLATFORM:-linux/amd64} gcr.io/distroless/static:nonroot
-FROM --platform=${BUILDPLATFORM:-linux/amd64} busybox:1.36.0-glibc
+FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.18.0
 
 LABEL org.opencontainers.image.source=https://github.com/paulfantom/cats
 
