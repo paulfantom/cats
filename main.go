@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type Cat struct {
@@ -42,14 +45,20 @@ func getCat(apiKey string) (string, error) {
 }
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
 	http.HandleFunc("/random", func(w http.ResponseWriter, r *http.Request) {
+		log.Info().Msg("Request received")
 		apiKey := r.Header.Get("x-api-key")
 		cat, err := getCat(apiKey)
 		if err != nil {
+			log.Error().Err(err).Msg("Error getting a cat from the external API")
 			http.Error(w, "Error", http.StatusInternalServerError)
 		}
+		log.Info().Msg("Sent a cat to client")
 		http.Redirect(w, r, cat, http.StatusFound)
 	})
 
+	log.Info().Msg("Listening on port 8080")
 	http.ListenAndServe(":8080", nil)
 }
