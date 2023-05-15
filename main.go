@@ -95,6 +95,7 @@ func main() {
 			requestDuration.WithLabelValues(r.Method, "5xx").Observe(time.Since(start).Seconds())
 			log.Error().Err(err).Msg("Error getting a cat from the external API")
 			http.Error(w, "Error", http.StatusInternalServerError)
+			return
 		}
 		requestsTotal.WithLabelValues(r.Method, "2xx").Inc()
 		log.Info().Msg("Sent a cat to client")
