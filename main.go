@@ -78,7 +78,7 @@ func main() {
 	)
 
 	// Reset metrics to 0's. This allows for better alerting in a low-traffic environment.
-	requestsTotal.WithLabelValues("GET", "200")
+	requestsTotal.WithLabelValues("GET", "2xx")
 	requestDuration.WithLabelValues("GET", "2xx")
 
 	// Expose /metrics HTTP endpoint using the created custom registry.
@@ -96,7 +96,7 @@ func main() {
 			log.Error().Err(err).Msg("Error getting a cat from the external API")
 			http.Error(w, "Error", http.StatusInternalServerError)
 		}
-		requestsTotal.WithLabelValues(r.Method, "200").Inc()
+		requestsTotal.WithLabelValues(r.Method, "2xx").Inc()
 		log.Info().Msg("Sent a cat to client")
 		http.Redirect(w, r, cat, http.StatusFound)
 	})
