@@ -4,9 +4,15 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Cat struct {
@@ -47,14 +53,46 @@ func getCat(apiKey string) (string, error) {
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
+	// Create a non-global registry.
+	reg := prometheus.NewRegistry()
+	requestsTotal := promauto.With(reg).NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Tracks the number of HTTP requests.",
+		}, []string{"method", "code"},
+	)
+	requestDuration := promauto.With(reg).NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Tracks the latencies for HTTP requests.",
+			Buckets: prometheus.ExponentialBuckets(0.1, 1.5, 5),
+		},
+		[]string{"method", "code"},
+	)
+
+	// Add Go module build info.
+	reg.MustRegister(
+		collectors.NewBuildInfoCollector(),
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+
+	// Expose /metrics HTTP endpoint using the created custom registry.
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+
 	http.HandleFunc("/random", func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		requestDuration.WithLabelValues(r.Method, "2xx").Observe(time.Since(start).Seconds())
 		log.Info().Msg("Request received")
 		apiKey := r.Header.Get("x-api-key")
 		cat, err := getCat(apiKey)
 		if err != nil {
+			requestsTotal.WithLabelValues(r.Method, "5xx").Inc()
+			requestDuration.WithLabelValues(r.Method, "5xx").Observe(time.Since(start).Seconds())
 			log.Error().Err(err).Msg("Error getting a cat from the external API")
 			http.Error(w, "Error", http.StatusInternalServerError)
 		}
+		requestsTotal.WithLabelValues(r.Method, "200").Inc()
 		log.Info().Msg("Sent a cat to client")
 		http.Redirect(w, r, cat, http.StatusFound)
 	})
