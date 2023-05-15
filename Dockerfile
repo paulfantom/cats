@@ -22,4 +22,6 @@ WORKDIR /
 COPY --from=builder /usr/bin/cats /
 USER nonroot:nonroot
 
+EXPOSE 8080
+
 CMD ["/cats"]
