@@ -77,6 +77,10 @@ func main() {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
 
+	// Reset metrics to 0's. This allows for better alerting in a low-traffic environment.
+	requestsTotal.WithLabelValues("GET", "200")
+	requestDuration.WithLabelValues("GET", "2xx")
+
 	// Expose /metrics HTTP endpoint using the created custom registry.
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 
