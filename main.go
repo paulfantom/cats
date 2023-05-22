@@ -87,7 +87,11 @@ func main() {
 	http.HandleFunc("/random", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		requestDuration.WithLabelValues(r.Method, "2xx").Observe(time.Since(start).Seconds())
-		log.Info().Msgf("Received request from %s", r.RemoteAddr)
+		clientIP := r.Header.Get("x-forwarded-for")
+		if clientIP == "" {
+			clientIP = r.RemoteAddr
+		}
+		log.Info().Msgf("Received request from %s", clientIP)
 		apiKey := r.Header.Get("x-api-key")
 		cat, err := getCat(apiKey)
 		if err != nil {
