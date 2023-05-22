@@ -87,7 +87,7 @@ func main() {
 	http.HandleFunc("/random", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		requestDuration.WithLabelValues(r.Method, "2xx").Observe(time.Since(start).Seconds())
-		log.Info().Msg("Request received")
+		log.Info().Msgf("Received request from %s", r.RemoteAddr)
 		apiKey := r.Header.Get("x-api-key")
 		cat, err := getCat(apiKey)
 		if err != nil {
@@ -98,7 +98,6 @@ func main() {
 			return
 		}
 		requestsTotal.WithLabelValues(r.Method, "2xx").Inc()
-		log.Info().Msg("Sent a cat to client")
 		http.Redirect(w, r, cat, http.StatusFound)
 	})
 
